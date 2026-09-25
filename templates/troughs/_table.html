@@ -15,9 +15,8 @@
     <tr>
       <td>{{ t.garden.name }}</td>
       <td>{{ t.troughCode }}</td>
-      <!-- BUG: 列绑定对调 -->
-      <td>{{ t.cultivar }}</td>
       <td>{{ t.loadKg }}</td>
+      <td>{{ t.cultivar }}</td>
       <td><span class="badge badge-{{ t.status }}">{{ t.get_status_display }}</span></td>
       <td class="actions">
         <a class="btn btn-sm btn-secondary" href="{% url 'trough_edit' t.pk %}">编辑</a>
