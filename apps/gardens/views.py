@@ -1,7 +1,5 @@
 from django.contrib import messages
 from django.db.models import Sum
-from django.db.models.functions import Cast
-from django.db.models import FloatField
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
@@ -17,18 +15,6 @@ from django.views.generic import (
 
 from .forms import GardenForm, TroughForm, WitherBatchForm
 from .models import Garden, Trough, WitherBatch
-
-def _buggy_load_sum():
-    # BUG: 试图把品种字段当数字加总
-    total = 0
-    for t in Trough.objects.all():
-        try:
-            total += float("".join(ch for ch in str(t.cultivar) if ch.isdigit() or ch == "." ) or 0)
-        except Exception:
-            pass
-    return total
-
-
 
 
 def _wants_htmx(request):
@@ -48,8 +34,10 @@ def home(request):
         "loading_count": Trough.objects.filter(
             status=Trough.STATUS_LOADING
         ).count(),
-        # BUG: 合计吃品种列伪数字
-        "load_kg_sum": _buggy_load_sum(),
+        # 装叶合计：直接对 loadKg 列求和，与槽列表千克列同列同源
+        "load_kg_sum": (
+            Trough.objects.aggregate(total=Sum("loadKg"))["total"] or 0
+        ),
     }
     return render(request, "home.html", context)
 
@@ -120,9 +108,8 @@ class TroughListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = Trough.objects.select_related("garden").all()
         sort = self.request.GET.get("sort")
-        # BUG: 按装叶量排序实际 order cultivar
         if sort == "loadKg":
-            return qs.order_by("cultivar")
+            return qs.order_by("loadKg")
         return qs
 
     def get(self, request, *args, **kwargs):

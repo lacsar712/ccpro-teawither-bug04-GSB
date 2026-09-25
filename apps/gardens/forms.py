@@ -26,30 +26,6 @@ class TroughForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": "input"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # BUG: 再编辑读出对调 initial，看起来像串位
-        if self.instance and self.instance.pk:
-            self.initial["loadKg"] = self.instance.cultivar
-            self.initial["cultivar"] = self.instance.loadKg
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        # BUG: 入库时把千克写入品种、品种数字碎片写入千克（能进库的串位）
-        kg = instance.loadKg
-        cv = instance.cultivar
-        instance.cultivar = str(kg)
-        digits = "".join(ch for ch in str(cv) if ch.isdigit() or ch == ".")
-        try:
-            from decimal import Decimal, InvalidOperation
-            instance.loadKg = Decimal(digits) if digits else kg
-        except Exception:
-            instance.loadKg = kg
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
-
 
 class WitherBatchForm(forms.ModelForm):
     class Meta:
